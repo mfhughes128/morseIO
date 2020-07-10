@@ -419,47 +419,46 @@ void morseEncoder::encode()
 
 
 
-morseSpeaker:morseSpeaker(byte spkrPin)
+morseSpeaker::morseSpeaker(int spkrPin)
 {
-    // Setup the speaker output pin
-    spkrOutPin = spkrPin;
-    this->setup_signal;
+  // Setup the speaker output pin
+  spkrOutPin = spkrPin;
+  this->setup_signal();
 
-    // Set initial state
-    keyDown = false;
-    decodeSpkrOn = false;
-    encodeSpkrOn = false;
+  // Set initial state
+  keyDown = false;
+  decodeSpkrOn = false;
+  encodeSpkrOn = false;
 }
 
 
-morseSpeaker:encodeTone(bool start)
+void morseSpeaker::encodeTone(bool start)
 {
-    if (this->encodeSpkrOn && !this->keyDown)
+  if (encodeSpkrOn && !keyDown)
+  {
+    if (start)
     {
-      if (start)
-      {
-        tone(this->spkrOutPin, NOTE_A3);
-      } else {
-        noTone(this->spkrOutPin)
-      }
-    
-}
-
-
-morseSpeaker:decodeTone(bool start)
-{
-    if (this->decodeSpkrOn)
-    {
-      if (start)
-      {
-        this->keyDown = true;
-		tone(this->spkrOutPin, NOTE_C4)
-      } else {
-        this->keyDown = false;
-		noTone(this->spkrOutPin)
-      }
+      tone(spkrOutPin, NOTE_A3);
+    } else {
+      noTone(this->spkrOutPin);
     }
+  }  
+}
 
+
+void morseSpeaker::decodeTone(bool start)
+{
+  if (decodeSpkrOn)
+  {
+    if (start)
+    {
+      keyDown = true;
+      tone(spkrOutPin, NOTE_C4);
+    } else {
+      keyDown = false;
+      noTone(spkrOutPin);
+    }
+  }
 }
 
 
@@ -468,5 +467,3 @@ void morseSpeaker::setup_signal()
   pinMode(spkrOutPin, OUTPUT);
   digitalWrite(spkrOutPin, LOW);
 }
-
-v

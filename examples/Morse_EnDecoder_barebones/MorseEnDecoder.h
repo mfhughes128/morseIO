@@ -78,15 +78,17 @@ class morseEncoder
 
 class morseSpeaker
 {
-  public:
-    morseSpeaker(int spkrPin);
-    void encodeTone(bool start);
-    void decodeTone(bool start);
-    boolean decodeSpkrOn;
-    boolean encodeSpkrOn;
-  private:
-    boolean keyDown
-	setup_signal();
+    public:
+      morseSpeaker(int spkrPin);
+      void encodeTone(bool start);
+      void decodeTone(bool start);
+      boolean decodeSpkrOn;
+      boolean encodeSpkrOn;
+    private:
+      boolean keyDown;
+	protected:
+	  int spkrOutPin;
+	  void setup_signal();
 };
       
 #endif

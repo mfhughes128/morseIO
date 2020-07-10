@@ -78,7 +78,7 @@ void morseEncoderTone::stop_signal(bool endOfChar, char signalType)
 /* now use the new class */
 
 // Pin mapping 
-const byte morseOutPin = 13;  // make sure this is compatible with the Tone class!
+const byte morseOutPin = 11;  // make sure this is compatible with the Tone class!
 morseEncoderTone morseOutput(morseOutPin);
 
 void setup()
@@ -88,7 +88,7 @@ void setup()
   
   // Setting Morse speed in wpm - words per minute
   // If not set, 13 wpm is default anyway
-  morseOutput.setspeed(13);
+  morseOutput.setspeed(20);
 }
 
 
@@ -106,4 +106,3 @@ void loop()
     morseOutput.write(sendMorse);
   }
 }
-
