@@ -15,7 +15,7 @@
 */
 
 #include <avr/pgmspace.h>
-#include "MorseEnDecoder.h"
+#include <MorseEnDecoder.h>
 
 // Pin mapping
 const byte morseInPin = 2;
@@ -23,9 +23,12 @@ const byte morseSpkrPin = 11;
 const byte morseOutPin = 12;
 
 // Instantiate Morse objects
-morseSpeaker morseSound(morseSpkrPin);
 morseDecoder morseInput(morseInPin, MORSE_KEYER, MORSE_ACTIVE_LOW);
 morseEncoder morseOutput(morseOutPin);
+morseSpeaker morseSound(morseSpkrPin);
+
+morseSound.encodeTone(true)
+
 
 void setup()
 {

@@ -64,8 +64,8 @@
                 decoding only, of which this is based on.
 */ 
 
-#include "MorseEnDecoder.h"
 #include <avr/pgmspace.h>
+#include "MorseEnDecoder.h"
 #include "pitches.h"
 
 // Morse code binary tree table (dichotomic search table)
@@ -186,8 +186,6 @@ void morseDecoder::decode()
     }
   }
   
-
-
   // Decode morse code
   if (!morseSignalState)
   {
@@ -423,7 +421,8 @@ morseSpeaker::morseSpeaker(int spkrPin)
 {
   // Setup the speaker output pin
   spkrOutPin = spkrPin;
-  this->setup_signal();
+  pinMode(spkrOutPin, OUTPUT);
+  digitalWrite(spkrOutPin, LOW);
 
   // Set initial state
   keyDown = false;
@@ -432,7 +431,7 @@ morseSpeaker::morseSpeaker(int spkrPin)
 }
 
 
-void morseSpeaker::encodeTone(bool start)
+void morseSpeaker::encodeTone(boolean start)
 {
   if (encodeSpkrOn && !keyDown)
   {
@@ -446,7 +445,7 @@ void morseSpeaker::encodeTone(bool start)
 }
 
 
-void morseSpeaker::decodeTone(bool start)
+void morseSpeaker::decodeTone(boolean start)
 {
   if (decodeSpkrOn)
   {
@@ -459,11 +458,4 @@ void morseSpeaker::decodeTone(bool start)
       noTone(spkrOutPin);
     }
   }
-}
-
-
-void morseSpeaker::setup_signal()
-{
-  pinMode(spkrOutPin, OUTPUT);
-  digitalWrite(spkrOutPin, LOW);
 }

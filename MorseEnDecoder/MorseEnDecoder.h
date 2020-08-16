@@ -13,6 +13,22 @@
 #define MORSE_ACTIVE_HIGH false
 
 
+class morseSpeaker
+{
+  public:
+    morseSpeaker(int spkrPin);
+    void encodeTone(boolean start);
+    void decodeTone(boolean start);
+    boolean decodeSpkrOn;
+    boolean encodeSpkrOn;
+  private:
+    boolean keyDown;
+  protected:
+    int spkrOutPin;
+    void setup_signal();
+};
+
+
 class morseDecoder
 {
   public:
@@ -74,21 +90,5 @@ class morseEncoder
     virtual void start_signal(bool startOfChar, char signalType);
     virtual void stop_signal(bool endOfChar, char signalType);
 };
-
-
-class morseSpeaker
-{
-  public:
-    morseSpeaker(int spkrPin);
-    void encodeTone(bool start);
-    void decodeTone(bool start);
-    boolean decodeSpkrOn;
-    boolean encodeSpkrOn;
-  private:
-    boolean keyDown
-	setup_signal();
-};
       
 #endif
-
-
