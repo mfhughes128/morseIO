@@ -22,51 +22,13 @@
 
  Contact: raronzen@gmail.com
  Details: http://raronoff.wordpress.com/2010/12/16/morse-endecoder/
-
- TODO: (a bit messy but will remove in time as it (maybe) gets done)
- - Use micros() for faster timings
- - use different defines for different morse code tables, up to including 9-signal SOS etc
-   - how to deal with different Morse language settings? Define's don't work with libraries in Arduino...
-   - possibly combine binary tree with table for the last few signals, to keep size down.
- - UTF-8 and ASCII encoding
-   - configurable setting or both simultaneous?
- - Speed auto sense? (would be nice).
-   - e.g. average x nr. of shortest and also longest signals for a time?
-   - All the time or just when asked to?
-   - debounceDelay might interfere
- - Serial command parser example sketch (to change speed and settings on the fly etc) 
  
-
- History:
- 2012.11.25 - raron: Implemented another type of binary tree and algorithms.
-                morseSignalString is now backwards.
- 2012.11.24 - AdH: wrapped enocer digitalWrite calls in virtual start_signal
-                 and stop_signal functions to make alternate output methods 
-                 easy via subclassing.
- 2012.11.22 - Debugged the _underscore_ problem, it got "uppercased" to a
-                question mark. Also, included ampersand (&)
- 2012.11.20 - Finally moved table to PROGMEM! Cleaned up header comments a bit.
- 2012.11.10 - Fixed minor bug: pinMode for the Morse output pin (thanks Rezoss!)
- 2012.01.31 - Tiny update for Arduino 1.0. Fixed header comments.
- 2010.12.06 - Cleaned up code a bit.
-                Added the "MN digraph" ---. for alternate exclamation mark(!).
-                Still encoded as the "KW digraph" -.-.-- though.
- 2010.12.04 - Program changed to use (Decode and Encode) classes instead.
- 2010.12.02 - Changed back to signed timers to avoid overflow.
- 2010.11.30 - Morse punctuation added (except $ - the dollar sign).
- 2010.11.29 - Added echo on/off command.
- 2010.11.28 - Added simple Morse audio clipping filter + Command parser.
- 2010.11.27 - Added Morse encoding via reverse-dichotomic path tracing.
-                Thus using the same Morse tree for encoding and decoding.
- 2010.11.11 - Complete Rewrite for the Arduino.
- 1992.01.06 - My old rather unknown "Morse decoder 3.5" for Amiga 600.
-                A 68000 Assembler version using a binary tree for Morse
-                decoding only, of which this is based on.
-*/ 
+ 2020/08/19 - Add Class to manage a speaker
+            - Add sidetone to decoder and tone output option to encoder.
+ */ 
 
 #include <avr/pgmspace.h>
 #include "MorseEnDecoder.h"
-#include "pitches.h"
 
 // Morse code binary tree table (dichotomic search table)
 // ITU with most punctuation (but without non-english characters - for now)
@@ -77,13 +39,63 @@ const char morseTable[] PROGMEM =
   "***********?_****\"**.****@***'**-********;!*)*****,****:*******\0";
 
 
+/*
+  Morse Speaker Class
+    Generates audible output for encoder and sidetone for
+    decoder. Sidetone over-rides output.
+*/
+
+MorseSpeaker::MorseSpeaker(int t_spkrPin)
+{
+  // Setup the speaker output pin
+  spkrOut = t_spkrPin;
+  pinMode(spkrOut, OUTPUT);
+  digitalWrite(spkrOut, LOW);
+
+  // Set initial state
+  keyDown = false;
+  sideToneOn = false;
+  outputToneOn = false;
+  
+  noTone(spkrOut);
+}
+
+void MorseSpeaker::outputTone(boolean t_on)
+{
+  if (outputToneOn) {
+    if (t_on && !keyDown) {
+      tone(spkrOut, OUTPUT_TONE_PITCH);
+    } else {
+      noTone(spkrOut);
+    }
+  }
+}
+
+void MorseSpeaker::sideTone(boolean t_on)
+{
+  if (sideToneOn) {
+    if (t_on) {
+      keyDown = true;
+      tone(spkrOut, SIDE_TONE_PITCH);
+    } else {
+      keyDown = false;
+      noTone(spkrOut);
+    }
+  }
+}
 
 
-morseDecoder::morseDecoder(int decodePin, boolean listenAudio, boolean morsePullup)
+/*
+  Morse Decoder Class
+    Translates Morse digital signal or tones to a
+    stream of characters.
+*/
+MorseDecoder::MorseDecoder(int decodePin, boolean listenAudio, boolean morsePullup, MorseSpeaker* Spkr_p)
 {
   morseInPin = decodePin;
   morseAudio = listenAudio;
   activeLow = morsePullup;
+  MorseSpkr = Spkr_p;
 
   if (morseAudio == false)
   {
@@ -104,6 +116,7 @@ morseDecoder::morseDecoder(int decodePin, boolean listenAudio, boolean morsePull
   morseKeyer = LOW;
   morseSignalState = LOW;
   lastKeyerState = LOW;
+  MorseSpkr->sideTone(false);
 
   gotLastSig = true;
   morseSpace = true;
@@ -115,7 +128,7 @@ morseDecoder::morseDecoder(int decodePin, boolean listenAudio, boolean morsePull
 }
 
 
-void morseDecoder::setspeed(int value)
+void MorseDecoder::setspeed(int value)
 {
   wpm = value;
   if (wpm <= 0) wpm = 1;
@@ -125,13 +138,13 @@ void morseDecoder::setspeed(int value)
 }
 
 
-boolean morseDecoder::available()
+boolean MorseDecoder::available()
 {
   if (decodedMorseChar) return true; else return false;
 }
 
 
-char morseDecoder::read()
+char MorseDecoder::read()
 {
   char temp = decodedMorseChar;
   decodedMorseChar = '\0';
@@ -139,7 +152,7 @@ char morseDecoder::read()
 }
 
 
-void morseDecoder::decode()
+void MorseDecoder::decode()
 {
   currentTime = millis();
   
@@ -151,8 +164,10 @@ void morseDecoder::decode()
     if (activeLow) morseKeyer = !morseKeyer;
 
     // If the switch changed, due to noise or pressing:
-    if (morseKeyer != lastKeyerState) lastDebounceTime = currentTime; // reset timer
-  
+    if (morseKeyer != lastKeyerState) {
+      lastDebounceTime = currentTime; // reset timer
+      MorseSpkr->sideTone(morseKeyer); // turn sidetone on or off
+    }
     // debounce the morse keyer
     if ((currentTime - lastDebounceTime) > debounceDelay)
     {
@@ -227,8 +242,8 @@ void morseDecoder::decode()
       decodedMorseChar = pgm_read_byte_near(morseTable + morseTablePointer);
       morseTablePointer = 0;
     }
-    // Write a space if pause is longer than 2/3rd wordspace
-    if (currentTime-spaceTime > (wordSpace*2/3) && morseSpace == false)
+    // Write a space if pause is longer than wordspace
+    if (currentTime-spaceTime > (wordSpace) && morseSpace == false)
     {
       decodedMorseChar = ' ';
       morseSpace = true ; // space written-flag
@@ -245,11 +260,16 @@ void morseDecoder::decode()
 }
 
 
+/*
+  Morse Encoder Class
+    Translates characters to Morse code and keys
+    io pin and sends tones as appropriate.
+*/
 
-
-morseEncoder::morseEncoder(int encodePin)
+MorseEncoder::MorseEncoder(int encodePin, MorseSpeaker *Spkr_p)
 {
   morseOutPin = encodePin;
+  MorseSpkr = Spkr_p;
   this->setup_signal();
 
   // some initial values
@@ -264,7 +284,7 @@ morseEncoder::morseEncoder(int encodePin)
 }
 
 
-void morseEncoder::setspeed(int value)
+void MorseEncoder::setspeed(int value)
 {
   wpm = value;
   if (wpm <= 0) wpm = 1;
@@ -274,38 +294,41 @@ void morseEncoder::setspeed(int value)
 }
 
 
-boolean morseEncoder::available()
+boolean MorseEncoder::available()
 {
   if (sendingMorse) return false; else return true;
 }
 
 
-void morseEncoder::write(char temp)
+void MorseEncoder::write(char temp)
 {
   if (!sendingMorse && temp != '*') encodeMorseChar = temp;
 }
 
 
-void morseEncoder::setup_signal()
+void MorseEncoder::setup_signal()
 {
   pinMode(morseOutPin, OUTPUT);
   digitalWrite(morseOutPin, LOW);
+  MorseSpkr->outputTone(false);
 }
 
 
-void morseEncoder::start_signal(bool startOfChar, char signalType)
+void MorseEncoder::start_signal(bool startOfChar, char signalType)
 {
   digitalWrite(morseOutPin, HIGH);
+  MorseSpkr->outputTone(true);
 }
 
 
-void morseEncoder::stop_signal(bool endOfChar, char signalType)
+void MorseEncoder::stop_signal(bool endOfChar, char signalType)
 {
   digitalWrite(morseOutPin, LOW);
+  MorseSpkr->outputTone(false);
 }
 
 
-void morseEncoder::encode()
+void MorseEncoder::encode()
 {
   currentTime = millis();
 
@@ -410,52 +433,6 @@ void morseEncoder::encode()
       // Ready to encode more letters
       sendingMorse = false;
       encodeMorseChar = '\0';
-    }
-  }
-}
-
-
-
-
-morseSpeaker::morseSpeaker(int spkrPin)
-{
-  // Setup the speaker output pin
-  spkrOutPin = spkrPin;
-  pinMode(spkrOutPin, OUTPUT);
-  digitalWrite(spkrOutPin, LOW);
-
-  // Set initial state
-  keyDown = false;
-  decodeSpkrOn = false;
-  encodeSpkrOn = false;
-}
-
-
-void morseSpeaker::encodeTone(boolean start)
-{
-  if (encodeSpkrOn && !keyDown)
-  {
-    if (start)
-    {
-      tone(spkrOutPin, NOTE_A3);
-    } else {
-      noTone(this->spkrOutPin);
-    }
-  }  
-}
-
-
-void morseSpeaker::decodeTone(boolean start)
-{
-  if (decodeSpkrOn)
-  {
-    if (start)
-    {
-      keyDown = true;
-      tone(spkrOutPin, NOTE_C4);
-    } else {
-      keyDown = false;
-      noTone(spkrOutPin);
     }
   }
 }

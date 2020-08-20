@@ -1,38 +1,36 @@
 #ifndef MorseEnDecoder_H
 #define MorseEnDecoder_H
 
-#if (ARDUINO <  100)
-#include <WProgram.h>
-#else
 #include <Arduino.h>
-#endif
+#include <pitches.h>
 
+#define OUTPUT_TONE_PITCH NOTE_A3
+#define SIDE_TONE_PITCH NOTE_C4
 #define MORSE_AUDIO true
 #define MORSE_KEYER false
 #define MORSE_ACTIVE_LOW true
 #define MORSE_ACTIVE_HIGH false
 
 
-class morseSpeaker
+class MorseSpeaker
 {
   public:
-    morseSpeaker(int spkrPin);
-    void encodeTone(boolean start);
-    void decodeTone(boolean start);
-    boolean decodeSpkrOn;
-    boolean encodeSpkrOn;
+    MorseSpeaker(int t_spkrPin);
+    void outputTone(boolean t_on);
+    void sideTone(boolean t_on);
+    boolean outputToneOn;
+    boolean sideToneOn;
   private:
     boolean keyDown;
   protected:
-    int spkrOutPin;
-    void setup_signal();
+    int spkrOut;
 };
 
 
-class morseDecoder
+class MorseDecoder
 {
   public:
-    morseDecoder(int decodePin, boolean listenAudio, boolean morsePullup);
+    MorseDecoder(int decodePin, boolean listenAudio, boolean morsePullup, MorseSpeaker*);
     void decode();
     void setspeed(int value);
     char read();
@@ -43,6 +41,7 @@ class morseDecoder
   private:
     int morseInPin;         // The Morse input pin
     int audioSignal;
+    MorseSpeaker *MorseSpkr;
     int morseTablePointer;
     int wpm;                // Word-per-minute speed
     long dotTime;           // morse dot time length in ms
@@ -62,10 +61,10 @@ class morseDecoder
 };
 
 
-class morseEncoder
+class MorseEncoder
 {
   public:
-    morseEncoder(int encodePin);
+    MorseEncoder(int encodePin, MorseSpeaker*);
     void encode();
     void setspeed(int value);
     void write(char temp);
@@ -73,6 +72,7 @@ class morseEncoder
     int morseSignals;       // nr of morse signals to send in one morse character
     char morseSignalString[7];// Morse signal for one character as temporary ASCII string of dots and dashes
   private:
+    MorseSpeaker *MorseSpkr;
     char encodeMorseChar;   // ASCII character to encode
     boolean sendingMorse;
     int wpm;                // Word-per-minute speed

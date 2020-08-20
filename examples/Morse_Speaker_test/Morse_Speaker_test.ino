@@ -10,7 +10,7 @@ Copyright (C) 2010, 2012 raron
   GNU GPLv3 license (http://www.gnu.org/li
 */
 
-#include <MorseSpeaker.h>
+#include <MorseEnDecoder.h>
 
 // Pin mapping
 const byte morseSpkrPin = 11;

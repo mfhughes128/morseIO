@@ -5,8 +5,9 @@
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
-
-MorseSpeaker    KEYWORD1
+MorseSpeaker	KEYWORD1
+MorseDecoder	KEYWORD1
+MorseEncoder	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -14,8 +15,19 @@ MorseSpeaker    KEYWORD1
 
 outputTone	KEYWORD2
 sideTone	KEYWORD2
+decode	KEYWORD2
+encode	KEYWORD2
+setspeed	KEYWORD2
+read	KEYWORD2
+write	KEYWORD2
+available	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
-
+OUTPUT_TONE_PITCH	LITERAL1
+SIDE_TONE_PITCH	LITERAL1
+MORSE_AUDIO	LITERAL1
+MORSE_KEYER	LITERAL1
+MORSE_ACTIVE_LOW	LITERAL1
+MORSE_ACTIVE_HIGH	LITERAL1
